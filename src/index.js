@@ -79,12 +79,8 @@ function updateRuleAction(rules, id, action) {
     });
 }
 
-function formatRule(rule) {
-    return `#${rule.id} ${(rule.action).toUpperCase()} ${rule.protocol} ${rule.src} -> ${rule.dst}`;
-}
-
-function formatRule({ id, action, protocol, src, dst }) {
-    return `#${id} ${(action).toUpperCase()} ${protocol} ${src} -> ${dst}`;
+function formatRule({ id, action, protocol, src, dst, port }) {
+    return `#${id} ${(action).toUpperCase()} ${protocol} ${src}:${port} -> ${dst}:${port}`;
 }
 
 function countRulesByAction(rules){
@@ -98,7 +94,7 @@ function countRulesByAction(rules){
     }, { allow: 0, deny: 0 })
 }
 
-function getRuleStatus(rules) {
+function getRuleStats(rules) {
     return rules.reduce((acc, rule) => { 
         acc.total++;
 
@@ -125,4 +121,4 @@ function getRuleStatus(rules) {
 // console.log(updateRuleAction(rules, 1, "block")); 
 // console.log(formatRule(findRuleById(rules, 1)));
 // console.log(countRulesByAction(rules));
-console.log(getRuleStatus(rules));
+// console.log(getRuleStats(rules));
