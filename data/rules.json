@@ -13,7 +13,7 @@
     "dst": "10.0.0.20",
     "port": 22,
     "protocol": "tcp",
-    "action": "allow"
+    "action": "deny"
   },
   {
     "id": 3,
