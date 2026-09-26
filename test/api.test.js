@@ -11,6 +11,33 @@ const dataFile = path.join(
 );
 const baseUrl = "http://localhost:3000";
 
+async function createTestRule(t, input) {
+    const response = await fetch(`${baseUrl}/rules`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input)
+    });
+
+    assert.equal(response.status, 201);
+
+    const rule = await response.json();
+
+    t.after(async () => {
+        const cleanupResponse = await fetch(`${baseUrl}/rules/${rule.id}`, {
+            method: "DELETE"
+        });
+
+        await cleanupResponse.text();
+
+        assert.ok(
+            cleanupResponse.status === 204 ||
+            cleanupResponse.status === 404
+        );
+    });
+
+    return rule;
+}
+
 test("GET /health возвращает 200 и статус ok", async () => {
     const response = await fetch(`${baseUrl}/health`);
 
@@ -57,12 +84,20 @@ test("GET /rules/1 возвращает 200 и правило с ID = 1", async 
     assert.strictEqual(data.id, 1);
 });
 
-test("PATCH /rules/1 возвращает 200 и измененное правило", async () => {
+test("PATCH /rules/:id возвращает 200 и измененное правило", async (t) => {
+    const createdRule = await createTestRule(t, {
+        src: "any",
+        dst: "10.0.0.99",
+        port: 443,
+        protocol: "tcp",
+        action: "deny"
+    });
+
     const body = {
         action: "allow"
     };
 
-    const response = await fetch(`${baseUrl}/rules/1`, {
+    const response = await fetch(`${baseUrl}/rules/${createdRule.id}`, {
                                 method: "PATCH",
                                 headers: {"Content-Type": "application/json; charset=utf-8"},
                                 body: JSON.stringify(body)
@@ -73,7 +108,7 @@ test("PATCH /rules/1 возвращает 200 и измененное прави
     const data = await response.json();
 
     const text = await fs.readFile(dataFile, "utf8");
-    const rule = JSON.parse(text).find((rule) => rule.id === 1);
+    const rule = JSON.parse(text).find((rule) => rule.id === createdRule.id);
 
     assert.ok(rule);
 
@@ -82,57 +117,40 @@ test("PATCH /rules/1 возвращает 200 и измененное прави
     assert.strictEqual(body.action, data.action);
 });
 
-test("POST /rules возвращает 201 и созданное правило с новым ID", async () => {
+test("POST /rules возвращает 201 и созданное правило с новым ID", async (t) => {
     const body = {
-        src:"any",
-        dst:"10.0.0.99",
-        port:443,
-        protocol:"tcp",
+        src: "any",
+        dst: "10.0.0.99",
+        port: 443,
+        protocol: "tcp",
         action: "deny"
     };
 
-    const response = await fetch(`${baseUrl}/rules`, {
-                                method: "POST",
-                                headers: {"Content-Type": "application/json; charset=utf-8"},
-                                body: JSON.stringify(body)
-                            });                 
-
-    assert.equal(response.status, 201);
-
-    const data = await response.json();
+    const createdRule = await createTestRule(t, body);
 
     const text = await fs.readFile(dataFile, "utf8");
-    const newRule = JSON.parse(text).find((rule) => rule.id === data.id);
+    const storedRule = JSON.parse(text).find(
+        (rule) => rule.id === createdRule.id
+    );
 
-    assert.ok(newRule);
+    assert.ok(storedRule);
 
-    const { id, ...bodyNewRule } = newRule;
+    const { id, ...storedBody } = storedRule;
 
-    assert.deepEqual(body, bodyNewRule);
-
-    assert.deepEqual(newRule, data);
+    assert.deepEqual(storedBody, body);
+    assert.deepEqual(storedRule, createdRule);
 });
 
-test("DELETE /rules/:id возвращает 204 и пустое тело", async () => {
-    const body = {
-        src: "192.168.10.0/24",
-        dst: "10.0.0.25",
-        port: 8080,
+test("DELETE /rules/:id возвращает 204 и пустое тело", async (t) => {
+    const createdRule = await createTestRule(t, {
+        src: "any",
+        dst: "10.0.0.99",
+        port: 443,
         protocol: "tcp",
-        action: "allow"
-    };
+        action: "deny"
+    });
 
-    const newRule = await fetch(`${baseUrl}/rules`, {
-                                method: "POST",
-                                headers: {"Content-Type": "application/json; charset=utf-8"},
-                                body: JSON.stringify(body)
-                            });
-
-    assert.equal(newRule.status, 201);
-    
-    const data = await newRule.json();
-
-    const response = await fetch(`${baseUrl}/rules/${data.id}`, {
+    const response = await fetch(`${baseUrl}/rules/${createdRule.id}`, {
                                 method: "DELETE"
                             });
 
