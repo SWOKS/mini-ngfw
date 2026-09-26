@@ -19,8 +19,8 @@ async function changeRuleAction(id, action) {
     }
 
     const updatedRule = { ...rule, action };
-    const updatedRules = rules.map((item) =>
-        item.id === id ? updatedRule : item
+    const updatedRules = rules.map((rule_item) =>
+        rule_item.id === id ? updatedRule : rule_item
     );
 
     await saveRules(updatedRules);
